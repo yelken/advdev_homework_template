@@ -1,5 +1,6 @@
 #!/bin/bash
 # Setup Jenkins Project
+# set -x
 if [ "$#" -ne 3 ]; then
     echo "Usage:"
     echo "  $0 GUID REPO CLUSTER"
@@ -13,24 +14,22 @@ CLUSTER=$3
 echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cluster ${CLUSTER}"
 
 # Set up Jenkins with sufficient resources
-oc new-app jenkins-persistent \
-  --param ENABLE_OAUTH=true \
-  --param MEMORY_LIMIT=2Gi \
-  --param VOLUME_CAPACITY=4Gi \
-  --param DISABLE_ADMINISTRATIVE_MONITORS=true \
-  -n "${GUID}-jenkins"
-
-oc set resources dc jenkins --limits=memory=2Gi,cpu=2 --requests=memory=1Gi,cpu=500m -n $GUID-jenkins
+# TBD
+# Mine
+# oc new-project ${GUID}-jenkins
+oc new-app jenkins-persistent --param ENABLE_OAUTH=true --param MEMORY_LIMIT=2Gi --param VOLUME_CAPACITY=4Gi --param DISABLE_ADMINISTRATIVE_MONITORS=true -n "${GUID}-jenkins"
+# oc set resources dc jenkins --limits=memory=2Gi,cpu=2 --requests=memory=1Gi,cpu=1
 
 # Create custom agent container image with skopeo
-oc new-build -D \
-$'FROM docker.io/openshift/jenkins-agent-maven-35-centos7:v3.11\n
-USER root\n 
-RUN yum -y install skopeo && yum clean all\n 
-USER 1001' \
-  --name=jenkins-agent-appdev -n $GUID-jenkins
+# TBD
+# Mine
+oc new-build -D $'FROM docker.io/openshift/jenkins-agent-maven-35-centos7:v3.11\n
+      USER root\nRUN yum -y install skopeo && yum clean all\n
+      USER 1001' --name=jenkins-agent-appdev -n "${GUID}-jenkins"
 
 # Create pipeline build config pointing to the ${REPO} with contextDir `openshift-tasks`
+# TBD
+# Mine
 echo "apiVersion: v1
 items:
 - kind: "BuildConfig"
@@ -41,19 +40,21 @@ items:
     source:
       type: "Git"
       git:
-        uri: ${REPO}
+        uri: "${REPO}"
       contextDir: "openshift-tasks"
     strategy:
-      type: JenkinsPipeline
+      type: "JenkinsPipeline"
       jenkinsPipelineStrategy:
         jenkinsfilePath: Jenkinsfile
+        env:
+        - name: "GUID"
+          value: "${GUID}"
+        - name: "REPO"
+          value: "${REPO}"
+        - name: "CLUSTER"
+          value: "${CLUSTER}"
 kind: List
-metadata: []" | oc create -f - -n $GUID-jenkins
-
-# For some reason the buildconfig wouldn't accept these env vars in the yaml, setting them works fine
-oc -n $GUID-jenkins set env bc/tasks-pipeline GUID=$GUID
-oc -n $GUID-jenkins set env bc/tasks-pipeline REPO=$REPO
-oc -n $GUID-jenkins set env bc/tasks-pipeline CLUSTER=$CLUSTER
+metadata: []" | oc create -f - -n "${GUID}-jenkins"
 
 # Make sure that Jenkins is fully up and running before proceeding!
 while : ; do

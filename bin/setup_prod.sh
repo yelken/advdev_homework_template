@@ -38,9 +38,5 @@ oc set probe dc/tasks-green --liveness --get-url=http://:8080/ --initial-delay-s
 # Setting 'wrong' VERSION. This will need to be updated in the pipeline
 oc set env dc/tasks-green VERSION='0.0 (tasks-green)' -n ${GUID}-tasks-prod
 
-# Update resource requests/limits in dc 
-oc patch -n ${GUID}-tasks-prod dc tasks-green --patch='{"spec":{"template":{"spec":{"containers":[{"name":"tasks-green","resources":{"limits":{"cpu":"1","memory":"1356Mi"},"requests":{"cpu":"1","memory":"1356Mi"}}}]}}}}'
-oc patch -n ${GUID}-tasks-prod dc tasks-blue --patch='{"spec":{"template":{"spec":{"containers":[{"name":"tasks-blue","resources":{"limits":{"cpu":"1","memory":"1356Mi"},"requests":{"cpu":"1","memory":"1356Mi"}}}]}}}}'
-
 # Expose Blue service as route to make green application active
 oc expose svc/tasks-green --name tasks -n ${GUID}-tasks-prod
